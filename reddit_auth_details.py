@@ -1,0 +1,5 @@
+client_id = 'Ynu_EYMg7FJKJc9m-0FbUg'
+client_secret = 'vqbs5rwZmyJ0DhRpOUAAFruRxkyKTQ'
+user_agent = 'oruni/0.1 by u/pro_skraper'
+username = 'pro_skraper'
+password = 'Thisis2021!R'
