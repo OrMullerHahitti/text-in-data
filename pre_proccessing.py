@@ -8,6 +8,7 @@ from nltk.stem import WordNetLemmatizer
 import string
 import matplotlib.pyplot as plt
 import random
+import re
 
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -40,7 +41,36 @@ def preprocess_text(text):
     tokens = [lemmatizer.lemmatize(token) for token in tokens]
     return tokens
 
+# New function for topic modeling preprocessing
+def preprocess_for_topic_modeling(text):
+    # If text is already a list of tokens
+    if isinstance(text, list):
+        # Convert each token to lowercase and remove non-alphabetic characters
+        tokens = [re.sub(r'[^a-zA-Z]', '', token.lower()) for token in text]
+    else:
+        # If it's a string, process it as before
+        text = re.sub(r'[^a-zA-Z\s]', '', text.lower())
+        tokens = word_tokenize(text)
 
+    # Remove stopwords and short words
+    stop_words = set(stopwords.words('english'))
+    custom_stop_words = {'would', 'also', 'get', 'im', 'ive', 'take', 'taking', 'day' ,'deleted', 'removed','yes','no','dont','like'}
+    stop_words.update(custom_stop_words)
+    tokens = [token for token in tokens if token not in stop_words and len(token) > 2]
+
+    # Lemmatize
+    lemmatizer = WordNetLemmatizer()
+    tokens = [lemmatizer.lemmatize(token) for token in tokens]
+
+    return tokens
+# New function for sentiment analysis preprocessing
+def preprocess_for_sentiment(text):
+    # If text is a list of tokens
+    if isinstance(text, list):
+        cleaned_tokens = [re.sub(r'[^a-zA-Z]', '', token.lower()) for token in text]
+        text = ' '.join(cleaned_tokens)
+
+    return text
 def create_sna_graph(data):
     G = nx.Graph()
     subjects = {}
