@@ -3,6 +3,8 @@ import networkx as nx
 import community as community_louvain
 from gensim import corpora
 from gensim.models import LdaMulticore, TfidfModel
+from gensim.models import Phrases
+from gensim.models.phrases import Phraser
 from gensim.models.coherencemodel import CoherenceModel
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
@@ -13,6 +15,8 @@ from pre_proccessing import preprocess_for_topic_modeling,preprocess_for_sentime
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from collections import Counter
+from advanced_proccessing import   get_wordnet_pos,remove_rare_frequent_words,advanced_preprocess,remove_low_tfidf_words
 
 def generate_subject_wordclouds(sentiment_texts, top_subjects):
     for subject, _ in top_subjects:
@@ -144,13 +148,43 @@ def perform_refined_nlp_analysis(preprocessed_data):
                 topic_modeling_docs.append(preprocess_for_topic_modeling(comment))
                 sentiment_texts.append((subject, preprocess_for_sentiment(comment)))
 
-    # Word frequency analysis using TF-IDF
+    # Step 1: Advanced preprocessing
+    topic_modeling_docs = advanced_preprocess(topic_modeling_docs)
+
+    # Step 2: Add bi-grams and tri-grams
+    bigram = Phrases(topic_modeling_docs, min_count=5, threshold=100)
+    trigram = Phrases(bigram[topic_modeling_docs], threshold=100)
+
+    bigram_mod = Phraser(bigram)
+    trigram_mod = Phraser(trigram)
+
+    topic_modeling_docs = [trigram_mod[bigram_mod[doc]] for doc in topic_modeling_docs]
+
+    # Step 3: Filter out unwanted tokens
+    def filter_tokens(doc):
+        return [token for token in doc if not any(unwanted in token for unwanted in ['http', 'www', '.com'])]
+
+    topic_modeling_docs = [filter_tokens(doc) for doc in topic_modeling_docs]
+
+    # Step 4: Remove rare and frequent words
+    topic_modeling_docs = remove_rare_frequent_words(topic_modeling_docs)
+
+    # Step 5: Remove low TF-IDF words
+    topic_modeling_docs = remove_low_tfidf_words(topic_modeling_docs)
+
+    # Print some statistics about the processed documents
+    all_tokens = [token for doc in topic_modeling_docs for token in doc]
+    token_counts = Counter(all_tokens)
+    print("\nTop 20 most common tokens after processing:")
+    print(token_counts.most_common(20))
+
+    print(f"\nTotal number of documents: {len(topic_modeling_docs)}")
+    print(
+        f"Average document length: {sum(len(doc) for doc in topic_modeling_docs) / len(topic_modeling_docs):.2f} tokens")
     dictionary = corpora.Dictionary(topic_modeling_docs)
     corpus = [dictionary.doc2bow(doc) for doc in topic_modeling_docs]
     tfidf = TfidfModel(corpus)
     corpus_tfidf = tfidf[corpus]
-
-    # Calculate average TF-IDF score for each word across all documents
     word_tfidf = {}
     for doc in corpus_tfidf:
         for id, value in doc:
@@ -212,10 +246,6 @@ def perform_refined_nlp_analysis(preprocessed_data):
     top_subjects = sorted(subject_sentiments.items(), key=lambda x: len(x[1]), reverse=True)[:5]
 
     generate_subject_wordclouds(sentiment_texts,top_subjects)
-
-
-
-
     plt.figure(figsize=(12, 8))
     for subject, sentiments_list in top_subjects:
         sns.kdeplot(sentiments_list, label=subject)

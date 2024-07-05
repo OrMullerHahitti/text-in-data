@@ -9,6 +9,8 @@ import string
 import matplotlib.pyplot as plt
 import random
 import re
+from nltk import ngrams
+from collections import Counter
 
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -63,12 +65,57 @@ def preprocess_for_topic_modeling(text):
     tokens = [lemmatizer.lemmatize(token) for token in tokens]
 
     return tokens
+
+
+
+
+
+def create_bigrams(corpus, min_count=5):
+    # Flatten the corpus to create bigrams across all documents
+    all_tokens = [token for doc in corpus for token in doc]
+
+    # Create bigrams
+    bigrams = list(ngrams(all_tokens, 2))
+
+    # Count bigram frequencies
+    bigram_freq = Counter(bigrams)
+
+    # Filter bigrams by frequency
+    frequent_bigrams = {b: c for b, c in bigram_freq.items() if c >= min_count}
+
+    # Create a set of frequent bigrams for faster lookup
+    frequent_bigram_set = set(frequent_bigrams.keys())
+
+    # Function to add bigrams to a document
+    def add_bigrams_to_doc(doc):
+        result = []
+        i = 0
+        while i < len(doc) - 1:
+            if (doc[i], doc[i + 1]) in frequent_bigram_set:
+                result.append(f"{doc[i]}_{doc[i + 1]}")
+                i += 2
+            else:
+                result.append(doc[i])
+                i += 1
+        if i == len(doc) - 1:
+            result.append(doc[-1])
+        return result
+
+    # Apply bigram creation to each document
+    corpus_with_bigrams = [add_bigrams_to_doc(doc) for doc in corpus]
+
+    return corpus_with_bigrams, frequent_bigrams
 # New function for sentiment analysis preprocessing
 def preprocess_for_sentiment(text):
     # If text is a list of tokens
     if isinstance(text, list):
+        # Convert each token to lowercase and remove non-alphabetic characters
         cleaned_tokens = [re.sub(r'[^a-zA-Z]', '', token.lower()) for token in text]
+        # Join the cleaned tokens back into a single string
         text = ' '.join(cleaned_tokens)
+    elif isinstance(text, str):
+        # If it's a string, process it as before
+        text = re.sub(r'[^a-zA-Z\s]', '', text.lower())
 
     return text
 def create_sna_graph(data):
