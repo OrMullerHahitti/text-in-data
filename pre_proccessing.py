@@ -183,6 +183,14 @@ def create_sna_graph(data):
                 else:
                     # No more comments available, break the loop
                     break
+            # without random:
+            # if not available_comments:
+            #     print("No comments available.")
+            # else:
+            #     for comment_author, comment_text in available_comments:
+            #         if comment_author not in users:
+            #             users[comment_author] = User(comment_author)
+            #         users[comment_author].subject_interactions[subject_name]['comments'] += 1
 
     edge_count = 0
     for user in users.values():
