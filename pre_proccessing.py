@@ -11,6 +11,7 @@ import random
 import re
 from nltk import ngrams
 from collections import Counter
+import List_of_compounds
 
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -21,6 +22,7 @@ POST_WEIGHT = 20
 COMMENT_WEIGHT = 2
 UPVOTE_WEIGHT = 0.01
 
+
 class Subject:
     def __init__(self, name):
         self.name = name
@@ -28,10 +30,12 @@ class Subject:
         self.total_upvotes = 0
         self.total_comments = 0
 
+
 class User:
     def __init__(self, id):
         self.id = id
         self.subject_interactions = defaultdict(lambda: {'posts': 0, 'comments': 0, 'upvotes': 0})
+
 
 def preprocess_text(text):
     text = text.lower()
@@ -42,6 +46,7 @@ def preprocess_text(text):
     lemmatizer = WordNetLemmatizer()
     tokens = [lemmatizer.lemmatize(token) for token in tokens]
     return tokens
+
 
 # New function for topic modeling preprocessing
 def preprocess_for_topic_modeling(text):
@@ -56,7 +61,8 @@ def preprocess_for_topic_modeling(text):
 
     # Remove stopwords and short words
     stop_words = set(stopwords.words('english'))
-    custom_stop_words = {'would', 'also', 'get', 'im', 'ive', 'take', 'taking', 'day' ,'deleted', 'removed','yes','no','dont','like'}
+    custom_stop_words = {'would', 'also', 'get', 'im', 'ive', 'take', 'taking', 'day', 'deleted', 'removed', 'yes',
+                         'no', 'dont', 'like'}
     stop_words.update(custom_stop_words)
     tokens = [token for token in tokens if token not in stop_words and len(token) > 2]
 
@@ -65,9 +71,6 @@ def preprocess_for_topic_modeling(text):
     tokens = [lemmatizer.lemmatize(token) for token in tokens]
 
     return tokens
-
-
-
 
 
 def create_bigrams(corpus, min_count=5):
@@ -105,6 +108,8 @@ def create_bigrams(corpus, min_count=5):
     corpus_with_bigrams = [add_bigrams_to_doc(doc) for doc in corpus]
 
     return corpus_with_bigrams, frequent_bigrams
+
+
 # New function for sentiment analysis preprocessing
 def preprocess_for_sentiment(text):
     # If text is a list of tokens
@@ -118,6 +123,30 @@ def preprocess_for_sentiment(text):
         text = re.sub(r'[^a-zA-Z\s]', '', text.lower())
 
     return text
+
+
+# Create dictionaries for each list
+peptides_dict = {item: 'Peptides' for item in List_of_compounds.peptides}
+nootropics_dict = {item: 'Nootropics' for item in List_of_compounds.nootropics}
+genres_dict = {item: 'Genres' for item in List_of_compounds.genres}
+other_nootropics_dict = {item: 'other_nootropics' for item in List_of_compounds.other_nootropics}
+vitamins_minerals_dict = {item: 'vitamins_minerals' for item in List_of_compounds.vitamins_minerals}
+herbal_extracts_dict = {item: 'herbal_extracts' for item in List_of_compounds.herbal_extracts}
+amino_acids_dict = {item: 'amino_acids' for item in List_of_compounds.amino_acids}
+stimulants_dict = {item: 'stimulants' for item in List_of_compounds.stimulants}
+adaptogens_dict = {item: 'adaptogens' for item in List_of_compounds.adaptogens}
+cholinergics_dict = {item: 'Genres' for item in List_of_compounds.cholinergics}
+racetams_dict = {item: 'racetams' for item in List_of_compounds.racetams}
+# Combine dictionaries into a single dictionary
+combined_dict = {**peptides_dict, **nootropics_dict, **genres_dict, **other_nootropics_dict, **vitamins_minerals_dict,
+                 **herbal_extracts_dict, **amino_acids_dict, **stimulants_dict, **adaptogens_dict, **cholinergics_dict,
+                 **racetams_dict}
+
+
+def find_list_name(item, lookup_dict):
+    return lookup_dict.get(item, None)
+
+
 def create_sna_graph(data):
     G = nx.Graph()
     subjects = {}
@@ -126,7 +155,7 @@ def create_sna_graph(data):
     for subject_name, posts in data.items():
         subject = Subject(subject_name)
         subjects[subject_name] = subject
-        G.add_node(subject_name)
+        G.add_node(subject_name, nootropic_type=find_list_name(subject_name, combined_dict))
 
         for post in posts:
             subject.posts.append(post)
@@ -210,6 +239,8 @@ def print_edge_list(G, limit=None):
 
     if limit and len(sorted_edges) > limit:
         print(f"... (showing top {limit} out of {len(sorted_edges)} edges)")
+
+
 def load_and_preprocess_data(file_path):
     data = load_posts(file_path)
     graph, subjects, users = create_sna_graph(data)
@@ -230,6 +261,8 @@ def load_and_preprocess_data(file_path):
 
     return graph, preprocessed_data
 
+
 # Usage
 if __name__ == "__main__":
     graph, preprocessed_data = load_and_preprocess_data("data_collected/posts.pkl")
+    nx.write_graphml(graph, "graph.graphml")
